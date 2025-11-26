@@ -15,6 +15,7 @@ RUN pnpm rebuild better-sqlite3
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/app/generated ./app/generated
 COPY . .
 RUN pnpm build
 

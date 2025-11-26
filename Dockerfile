@@ -7,8 +7,10 @@ RUN corepack enable
 
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+RUN apt-get update && apt-get install -y build-essential python3
+COPY package.json pnpm-lock.yaml prisma/ ./
 RUN pnpm install --frozen-lockfile
+RUN pnpm rebuild better-sqlite3
 
 FROM base AS builder
 WORKDIR /app

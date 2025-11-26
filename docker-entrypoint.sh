@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -euo pipefail
 
 if [ "${SKIP_DB_SETUP:-false}" != "true" ]; then

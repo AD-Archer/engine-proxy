@@ -80,10 +80,10 @@ docker run --env-file ./.env \
 Prefer Compose?
 
 ```bash
-docker compose up --build
+docker compose up
 ```
 
-Open `docker-compose.yml`, edit the inline `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and other variables, then run `docker compose up --build`. By default the SQLite file is stored on a Docker named volume, but you can uncomment the bind mount in the compose file to persist it under `./engine-proxy/database/` on the host.
+Copy `docker-compose.yml`, edit the inline `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and other variables, then run `docker compose up`. By default the SQLite file is stored on a Docker named volume, but you can uncomment the bind mount in the compose file to persist it under `./engine-proxy/database/` on the host.
 
 Environment variables:
 

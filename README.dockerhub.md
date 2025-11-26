@@ -12,7 +12,7 @@ docker run -d \
   -e DATABASE_URL="file:./prisma/data.db" \
   -e ADMIN_USERNAME="admin" \
   -e ADMIN_PASSWORD="change-me" \
-  ghcr.io/adarcher/engine-proxy:latest
+  adarcher/engine-proxy:latest
 ```
 
 - The `engine-proxy-data` named volume keeps the SQLite database (`/app/prisma/data.db`) between restarts.
@@ -37,7 +37,7 @@ version: "3.9"
 
 services:
   engine-proxy:
-    image: ghcr.io/adarcer/engine-proxy:latest
+    image: adarcher/engine-proxy:latest
     ports:
       - "3000:3000"
     environment:

@@ -1,0 +1,31 @@
+# Prevent local dev artifacts from bloating the build context
+node_modules
+.pnpm-store
+.next
+out
+dist
+.build
+coverage
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Keep VCS and editor files out of the image
+.git
+.gitignore
+.vscode
+
+# Ensure secrets/config are only injected at runtime
+.env
+.env.*
+
+# SQLite artifacts stay per-user and should never be baked into the image
+prisma/*.db
+prisma/**/*.db
+prisma/migrations
+
+# Docker/compose files themselves are unnecessary in the build context
+Dockerfile.local
+docker-compose.yml

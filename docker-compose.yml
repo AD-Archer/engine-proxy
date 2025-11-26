@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  engine-proxy:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:./prisma/data.db" # change if you prefer a different SQLite path
+      ADMIN_USERNAME: "admin"              # set your admin username
+      ADMIN_PASSWORD: "change-me"          # set your admin password
+      # SKIP_DB_SETUP: "true"              # uncomment to skip db push/seed on start
+    volumes:
+      - sqlite-data:/app/prisma # Named volume (default)
+      # - ./database:/app/prisma # Uncomment to persist to ./engine-proxy/database
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:

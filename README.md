@@ -64,31 +64,37 @@ pnpm prisma:generate  # regenerate the Prisma client if needed
 
 ### Docker
 
-The repository ships with a multi-stage Dockerfile and a compose stack that persists the SQLite database on a named volume. The new `.dockerignore` keeps dev artifacts (including `.env`) out of the build context so secrets are only injected at runtime.
+The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma, and `better-sqlite3` ready to go. Nothing from your local `.env` is baked into the layers—the `.dockerignore` excludes it so secrets are only injected when a container starts.
+
+1. Create a production `.env` next to `docker-compose.yml`:
+   ```env
+   DATABASE_URL="file:./prisma/data.db"
+   ADMIN_USERNAME="your-admin"
+   ADMIN_PASSWORD="super-secret"
+   PORT=3000
+   # SKIP_DB_SETUP=true  # optional
+   ```
+2. Build + run with Compose (this automatically mounts the SQLite file on a named volume):
+   ```bash
+   docker compose up --build -d
+   ```
+   The compose file wires `env_file: .env`, so edits to `.env` only require a container restart (`docker compose up -d`), never a rebuild.
+
+Want a single container?
 
 ```bash
-# Build a production image
 docker build -t engine-proxy:latest .
-
-# Run it anywhere, injecting env vars at runtime
 docker run --env-file ./.env \
-   -p 3000:3000 \
-   --name engine-proxy \
-   engine-proxy:latest
+  -p 3000:3000 \
+  -v sqlite-data:/app/prisma \
+  --name engine-proxy \
+  engine-proxy:latest
 ```
 
-Prefer Compose?
+Key environment variables:
 
-```bash
-docker compose up
-```
+- `DATABASE_URL` – path/connection string for Prisma (defaults to `file:./prisma/data.db` inside the container).
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` – Basic Auth credentials for `/admin` and the API.
+- `SKIP_DB_SETUP=true` – skips the automatic `pnpm db:push` + `pnpm db:seed` that run on each container boot if you prefer to manage migrations yourself.
 
-Copy `docker-compose.yml`, edit the inline `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and other variables, then run `docker compose up`. By default the SQLite file is stored on a Docker named volume, but you can uncomment the bind mount in the compose file to persist it under `./engine-proxy/database/` on the host.
-
-Environment variables:
-
-- `DATABASE_URL` – path to the SQLite file (default `file:./prisma/data.db`).
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` – required for admin + API access.
-- `SKIP_DB_SETUP=true` – optionally skip the automatic `pnpm db:push` + `pnpm db:seed` that run on container start.
-
-When you provide an `--env-file` (or inline `-e` flags) to plain `docker run`, Docker injects those values only when the container starts, so you can safely keep production credentials outside the image. The compose file binds port `3000` and mounts the `/app/prisma` directory to keep `data.db` between restarts.
+SQLite data lives under `/app/prisma`. The compose stack keeps it on the `sqlite-data` named volume by default, or you can bind-mount a host directory if you prefer to see the `data.db` file directly.

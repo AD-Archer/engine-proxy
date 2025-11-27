@@ -24,7 +24,6 @@ yarn-error.log*
 # SQLite artifacts stay per-user and should never be baked into the image
 prisma/*.db
 prisma/**/*.db
-prisma/migrations
 
 # Docker/compose files themselves are unnecessary in the build context
 Dockerfile.local

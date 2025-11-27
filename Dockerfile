@@ -13,8 +13,8 @@ ENV PORT=3000
 WORKDIR /app
 
 # Install runtime OS packages and pnpm via corepack
-RUN --mount=type=cache,target=/var/cache/apt \
-		--mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+	--mount=type=cache,target=/var/lib/apt,sharing=locked \
 		apt-get update && \
 		apt-get install -y --no-install-recommends \
 			ca-certificates \
@@ -30,8 +30,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
 FROM base AS deps
 
 # Toolchain for native modules such as better-sqlite3
-RUN --mount=type=cache,target=/var/cache/apt \
-		--mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+	--mount=type=cache,target=/var/lib/apt,sharing=locked \
 		apt-get update && \
 		apt-get install -y --no-install-recommends \
 			build-essential \

@@ -66,7 +66,12 @@ pnpm prisma:generate  # regenerate the Prisma client if needed
 
 The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma, and `better-sqlite3` ready to go. Nothing from your local `.env` is baked into the layers—the `.dockerignore` excludes it so secrets are only injected when a container starts.
 
-1. Create a production `.env` next to `docker-compose.yml`:
+1. Clone the repo and enter it:
+   ```bash
+   git clone https://github.com/AD-Archer/engine-proxy.git
+   cd engine-proxy
+   ```
+2. Create a production `.env` next to `docker-compose.yml`:
    ```env
    DATABASE_URL="file:./prisma/data.db"
    ADMIN_USERNAME="your-admin"
@@ -74,22 +79,13 @@ The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma
    PORT=3000
    # SKIP_DB_SETUP=true  # optional
    ```
-2. Build + run with Compose (this automatically mounts the SQLite file on a named volume):
+3. First run: build the image and start everything with Compose (this automatically mounts the SQLite file on a named volume):
    ```bash
-   docker compose up --build -d
+   docker compose build --no-cache
+   docker compose up -d
    ```
-   The compose file wires `env_file: .env`, so edits to `.env` only require a container restart (`docker compose up -d`), never a rebuild.
+   On subsequent updates, a simple `docker compose up -d` refreshes the container with the latest env vars.
 
-Want a single container?
-
-```bash
-docker build -t engine-proxy:latest .
-docker run --env-file ./.env \
-  -p 3000:3000 \
-  -v sqlite-data:/app/prisma \
-  --name engine-proxy \
-  engine-proxy:latest
-```
 
 Key environment variables:
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -11,6 +11,27 @@ import {
 } from "@/lib/auth";
 
 const hours12 = 60 * 60 * 12;
+const isCookieSecureEnv = process.env.COOKIE_SECURE?.toLowerCase() === "true";
+
+const shouldUseSecureCookies = async () => {
+  const requestHeaders = await headers();
+  const forwardedProto = requestHeaders.get("x-forwarded-proto");
+  const origin = requestHeaders.get("origin");
+
+  if (isCookieSecureEnv) {
+    return true;
+  }
+
+  if (forwardedProto === "https") {
+    return true;
+  }
+
+  if (origin?.startsWith("https://")) {
+    return true;
+  }
+
+  return false;
+};
 
 export type SignInState = {
   error?: string;
@@ -51,6 +72,7 @@ export async function authenticate(
   }
 
   const token = await deriveSessionToken(expectedUser, expectedPassword);
+  const secureCookies = await shouldUseSecureCookies();
 
   const cookieStore = await cookies();
   cookieStore.set({
@@ -58,7 +80,7 @@ export async function authenticate(
     value: token,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     maxAge: hours12,
     path: "/",
   });

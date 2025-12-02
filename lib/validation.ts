@@ -4,15 +4,17 @@ import { normalizeShortcut } from "@/lib/shortcuts";
 
 const shortcutSchema = z
   .string()
-  .min(2, "Shortcut should be at least 2 characters")
+  .min(1, "Shortcut should be at least 1 character")
   .max(24, "Shortcut should be 24 characters or fewer")
-  .regex(
-    /^[a-z0-9_-]+$/i,
-    "Only letters, numbers, dashes, and underscores are allowed"
-  )
+  .regex(/^[^\s'"]+$/, "Anything except spaces and quotes is allowed")
   .transform((val) => normalizeShortcut(val));
 
-const urlTemplateSchema = z
+const urlTemplateSchema = z.preprocess((val) => {
+  if (typeof val === "string") {
+    return val.replace(/%s/g, "{query}");
+  }
+  return val;
+}, z
   .string()
   .min(10, "Template should include a valid URL")
   .refine(
@@ -21,8 +23,8 @@ const urlTemplateSchema = z
   )
   .refine(
     (value) => value.includes("{query}"),
-    "Template must include a {query} placeholder"
-  );
+    "Template must include a {query} placeholder (or %s)"
+  ));
 
 const descriptionSchema = z.preprocess((val) => {
   if (typeof val === "string") {

@@ -26,6 +26,7 @@ docker run -d \
 | `DATABASE_URL`   | optional | `file:./prisma/data.db` | SQLite connection string; keep the `file:` prefix when storing locally.    |
 | `ADMIN_USERNAME` | yes      | –                       | Username for the Basic Auth-protected admin console and API.               |
 | `ADMIN_PASSWORD` | yes      | –                       | Password paired with `ADMIN_USERNAME`.                                     |
+| `COOKIE_SECURE`  | no       | auto                    | Force secure cookies if your TLS proxy strips `X-Forwarded-Proto`; leave unset for HTTP. |
 | `SKIP_DB_SETUP`  | no       | `false`                 | Set to `true` to skip the Prisma push/seed step in `docker-entrypoint.sh`. |
 
 ## Docker Compose

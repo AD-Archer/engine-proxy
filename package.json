@@ -1,6 +1,6 @@
 {
   "name": "engine-proxy",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,9 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "docker:build":"docker build -t engine-proxy:latest .",
+    "docker:build": "docker build -t engine-proxy:latest .",
     "docker:run": "docker run -d --name engine-proxy -p 3000:3000 -v sqlite-data:/app/prisma -e DATABASE_URL=\"file:./prisma/data.db\" -e ADMIN_USERNAME=\"admin\" -e ADMIN_PASSWORD=\"change-me\" engine-proxy:latest",
-    
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "prisma:generate": "prisma generate",
@@ -32,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.8.32",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
     "tailwindcss": "^4",

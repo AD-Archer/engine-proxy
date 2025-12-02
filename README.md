@@ -91,6 +91,7 @@ Key environment variables:
 
 - `DATABASE_URL` – path/connection string for Prisma (defaults to `file:./prisma/data.db` inside the container).
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` – Basic Auth credentials for `/admin` and the API.
+- `COOKIE_SECURE=true` – force secure cookies if your TLS terminator does not set `X-Forwarded-Proto`; leave unset for HTTP/local Docker so sign-in works.
 - `SKIP_DB_SETUP=true` – skips the automatic `pnpm db:push` + `pnpm db:seed` that run on each container boot if you prefer to manage migrations yourself.
 
 SQLite data lives under `/app/prisma`. The compose stack keeps it on the `sqlite-data` named volume by default, or you can bind-mount a host directory if you prefer to see the `data.db` file directly.

@@ -24,6 +24,50 @@ type Props = {
   initialEngines: SearchEngineDTO[];
 };
 
+const normalizeUrlTemplate = (value: string) =>
+  value.replace(/%s/g, "{query}");
+
+const extractErrorMessage = (
+  payload: unknown,
+  fallback: string
+): string => {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "error" in payload &&
+    payload.error &&
+    typeof payload.error === "object"
+  ) {
+    const error = payload.error as Record<string, unknown>;
+    if (typeof error.message === "string") {
+      return error.message;
+    }
+
+    const fieldErrors = error.fieldErrors as
+      | Record<string, string[] | undefined>
+      | undefined;
+    const formErrors = error.formErrors as string[] | undefined;
+
+    const messages: string[] = [];
+    if (Array.isArray(formErrors)) {
+      messages.push(...formErrors);
+    }
+    if (fieldErrors) {
+      for (const [field, errs] of Object.entries(fieldErrors)) {
+        if (errs && errs.length > 0) {
+          messages.push(`${field}: ${errs.join(", ")}`);
+        }
+      }
+    }
+
+    if (messages.length > 0) {
+      return messages.join(" · ");
+    }
+  }
+
+  return fallback;
+};
+
 const normalize = (engine: SearchEngineDTO): EngineFormState => ({
   displayName: engine.displayName,
   shortcut: engine.shortcut,
@@ -61,15 +105,21 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     setMessage(null);
 
     try {
+      const body = {
+        ...form,
+        urlTemplate: normalizeUrlTemplate(form.urlTemplate),
+      };
       const response = await fetch("/api/shortcuts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error?.message ?? "Unable to save shortcut");
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(
+          extractErrorMessage(errorPayload, "Unable to save shortcut")
+        );
       }
 
       setForm(emptyForm);
@@ -114,15 +164,21 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     setMessage(null);
 
     try {
+      const body = {
+        ...editingForm,
+        urlTemplate: normalizeUrlTemplate(editingForm.urlTemplate),
+      };
       const response = await fetch(`/api/shortcuts/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingForm),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error?.message ?? "Unable to update shortcut");
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(
+          extractErrorMessage(errorPayload, "Unable to update shortcut")
+        );
       }
 
       setEditingId(null);
@@ -210,7 +266,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
               className="text-sm font-medium text-slate-700"
               htmlFor="shortcut"
             >
-              Shortcut (letters, numbers, - or _)
+              Shortcut (no spaces, no quotes)
             </label>
             <input
               id="shortcut"
@@ -288,7 +344,12 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
         ) : (
           <ul className="mt-4 divide-y divide-slate-200">
             {sortedEngines.map((engine) => (
-              <li key={engine.id} className="py-4">
+              <li
+                key={engine.id}
+                className={`py-4 ${
+                  engine.isDefault ? "rounded-xl bg-rose-50/80 px-3" : ""
+                }`}
+              >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-lg font-semibold text-slate-900">

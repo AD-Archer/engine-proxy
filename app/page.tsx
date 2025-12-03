@@ -12,6 +12,30 @@ type HomeProps = {
   searchParams: Promise<{ q?: string }>;
 };
 
+const detectProtocol = (headersList: Headers) => {
+  const forwardedProto =
+    headersList.get("x-forwarded-proto") ??
+    headersList.get("x-forwarded-protocol");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0].trim() === "https" ? "https" : "http";
+  }
+
+  const forwardedSsl = headersList.get("x-forwarded-ssl");
+  if (forwardedSsl && forwardedSsl.toLowerCase() === "on") {
+    return "https";
+  }
+
+  const forwarded = headersList.get("forwarded");
+  if (forwarded) {
+    const match = forwarded.match(/proto=([^;]+)/i);
+    if (match?.[1]) {
+      return match[1].split(",")[0].trim();
+    }
+  }
+
+  return "http";
+};
+
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const incomingQuery = params?.q;
@@ -21,7 +45,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
-  const baseUrl = `http://${host}`;
+  const protocol = detectProtocol(headersList);
+  const baseUrl = `${protocol}://${host}`;
 
   const engines = await fetchEngines();
 
@@ -54,7 +79,7 @@ export default async function Home({ searchParams }: HomeProps) {
               Create a custom search engine in Chrome, Edge, Arc, or Brave that
               points to the URL below. This allows you to search directly from
               your browser&apos;s address bar. Start with a shortcut name to use
-              that engine, or use @shortcut to search on the default engine.
+              that engine, or use the shortcut to search on the default engine.
             </p>
             <div className="mt-4">
               <p className="text-sm font-medium text-slate-700">Search URL:</p>
@@ -70,7 +95,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
         <CollapsibleSection
           title="Included shortcuts"
-          description="Preloaded with privacy-first engines, AI helpers, and classic web search. Start your query with the shortcut name to jump straight there. Use @shortcut to search on the default engine instead."
+          description="Preloaded with privacy-first engines, AI helpers, and classic web search. Start your query with the shortcut name to jump straight there. Use the shortcut names you see below to search on the default engine instead."
         >
           <div className="grid gap-4 sm:grid-cols-2">
             {engines.map((engine) => (

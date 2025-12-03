@@ -26,6 +26,7 @@ export function SignInForm({
   return (
     <form
       action={formAction}
+      data-lpignore="true"
       className="space-y-6 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-xl shadow-slate-200/70"
     >
       <div>
@@ -52,6 +53,9 @@ export function SignInForm({
           id="username"
           name="username"
           autoComplete="username"
+          data-lpignore="true"
+          data-form-type="other"
+          data-lastpass="off"
           className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
           required
         />
@@ -69,6 +73,9 @@ export function SignInForm({
           name="password"
           type="password"
           autoComplete="current-password"
+          data-lpignore="true"
+          data-form-type="password"
+          data-lastpass="off"
           className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
           required
         />

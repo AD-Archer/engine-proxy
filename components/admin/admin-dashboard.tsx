@@ -79,10 +79,11 @@ const normalize = (engine: SearchEngineDTO): EngineFormState => ({
 export const AdminDashboard = ({ initialEngines }: Props) => {
   const [engines, setEngines] = useState(initialEngines);
   const [form, setForm] = useState<EngineFormState>(emptyForm);
-  const [message, setMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingForm, setEditingForm] = useState<EngineFormState | null>(null);
+  const [editFeedback, setEditFeedback] = useState<string | null>(null);
 
   const sortedEngines = useMemo(() => {
     return [...engines].sort((a, b) =>
@@ -99,18 +100,23 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     setEngines(payload.data ?? []);
   };
 
-  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const saveShortcut = async (
+    formData: Partial<EngineFormState>,
+    id: number | null
+  ) => {
     setBusy(true);
-    setMessage(null);
+    setStatus(null);
+    setEditFeedback(null);
 
     try {
       const body = {
-        ...form,
-        urlTemplate: normalizeUrlTemplate(form.urlTemplate),
+        ...formData,
+        urlTemplate: formData.urlTemplate ? normalizeUrlTemplate(formData.urlTemplate) : undefined,
       };
-      const response = await fetch("/api/shortcuts", {
-        method: "POST",
+      const url = id ? `/api/shortcuts/${id}` : "/api/shortcuts";
+      const method = id ? "PUT" : "POST";
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -118,25 +124,39 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}));
         throw new Error(
-          extractErrorMessage(errorPayload, "Unable to save shortcut")
+          extractErrorMessage(errorPayload, id ? "Unable to update shortcut" : "Unable to save shortcut")
         );
       }
 
-      setForm(emptyForm);
+      if (!id) {
+        setForm(emptyForm);
+      } else {
+        setEditingId(null);
+        setEditingForm(null);
+      }
       await refresh();
-      setMessage("Shortcut created");
+      setStatus({ message: id ? "Shortcut updated" : "Shortcut created", tone: "success" });
     } catch (error) {
       if (error instanceof Error) {
-        setMessage(error.message);
+        setStatus({ message: error.message, tone: "error" });
+        if (id) {
+          setEditFeedback(error.message);
+        }
       }
     } finally {
       setBusy(false);
     }
   };
 
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await saveShortcut(form, null);
+  };
+
   const handleDelete = async (id: number) => {
     setBusy(true);
-    setMessage(null);
+    setStatus(null);
+    setEditFeedback(null);
     try {
       const response = await fetch(`/api/shortcuts/${id}`, {
         method: "DELETE",
@@ -146,10 +166,10 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
         throw new Error(payload.error?.message ?? "Unable to delete shortcut");
       }
       await refresh();
-      setMessage("Shortcut removed");
+      setStatus({ message: "Shortcut removed", tone: "success" });
     } catch (error) {
       if (error instanceof Error) {
-        setMessage(error.message);
+        setStatus({ message: error.message, tone: "error" });
       }
     } finally {
       setBusy(false);
@@ -160,73 +180,24 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     if (editingId == null || !editingForm) {
       return;
     }
-    setBusy(true);
-    setMessage(null);
-
-    try {
-      const body = {
-        ...editingForm,
-        urlTemplate: normalizeUrlTemplate(editingForm.urlTemplate),
-      };
-      const response = await fetch(`/api/shortcuts/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}));
-        throw new Error(
-          extractErrorMessage(errorPayload, "Unable to update shortcut")
-        );
-      }
-
-      setEditingId(null);
-      setEditingForm(null);
-      await refresh();
-      setMessage("Shortcut updated");
-    } catch (error) {
-      if (error instanceof Error) {
-        setMessage(error.message);
-      }
-    } finally {
-      setBusy(false);
-    }
+    await saveShortcut(editingForm, editingId);
   };
 
   const setAsDefault = async (id: number) => {
-    setBusy(true);
-    setMessage(null);
-    try {
-      const response = await fetch(`/api/shortcuts/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isDefault: true }),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error?.message ?? "Unable to set default");
-      }
-      await refresh();
-      setMessage("Default updated");
-    } catch (error) {
-      if (error instanceof Error) {
-        setMessage(error.message);
-      }
-    } finally {
-      setBusy(false);
-    }
+    await saveShortcut({ isDefault: true }, id);
   };
 
   const openEditor = (engine: SearchEngineDTO) => {
     setEditingId(engine.id);
     setEditingForm(normalize(engine));
-    setMessage(null);
+    setStatus(null);
+    setEditFeedback(null);
   };
 
   const closeEditor = () => {
     setEditingId(null);
     setEditingForm(null);
+    setEditFeedback(null);
   };
 
   return (
@@ -240,6 +211,26 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
           <code className="rounded bg-slate-100 px-1">{`{query}`}</code> where
           the search text should go.
         </p>
+        <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+          <div className="flex items-start gap-2">
+            <span className="mt-2 h-2 w-2 rounded-full bg-indigo-400" aria-hidden />
+            <span>
+              Point shortcuts at internal tools (e.g. docs, ticket trackers, runbooks) to quickly jump across your stack.
+            </span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="mt-2 h-2 w-2 rounded-full bg-indigo-400" aria-hidden />
+            <span>
+              Route AI helpers or custom APIs: send {`{query}`} to a chatbot, RAG endpoint, or even self-hosted LLM.
+            </span>
+          </div>
+          <div className="flex items-start gap-2 sm:col-span-2">
+            <span className="mt-2 h-2 w-2 rounded-full bg-indigo-400" aria-hidden />
+            <span>
+              Create alias shortcuts like <code className="rounded bg-slate-100 px-1">!g</code> or <code className="rounded bg-slate-100 px-1">#ai</code> to mirror your muscle memory from other launchers.
+            </span>
+          </div>
+        </div>
         <form
           className="mt-4 grid gap-4 sm:grid-cols-2"
           onSubmit={handleCreate}
@@ -272,11 +263,16 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
               id="shortcut"
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
               value={form.shortcut}
+              pattern={String.raw`[^\s'"]+`}
+              title="Use any characters except spaces or quotes"
               onChange={(event) =>
                 setForm({ ...form, shortcut: event.target.value })
               }
               required
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Symbols and single characters are fine (e.g. !, ?, %ai, /g). Spaces and quotes are blocked.
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label
@@ -332,7 +328,17 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
             </button>
           </div>
         </form>
-        {message && <p className="mt-3 text-sm text-slate-600">{message}</p>}
+        {status && (
+          <p
+            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+              status.tone === "error"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {status.message}
+          </p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
@@ -391,6 +397,11 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                 </div>
                 {editingId === engine.id && editingForm && (
                   <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                    {editFeedback && (
+                      <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {editFeedback}
+                      </p>
+                    )}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <input
                         className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
@@ -405,6 +416,8 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                       <input
                         className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
                         value={editingForm.shortcut}
+                        pattern={String.raw`[^\s'"]+`}
+                        title="Use any characters except spaces or quotes"
                         onChange={(event) =>
                           setEditingForm({
                             ...editingForm,
@@ -412,6 +425,9 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                           })
                         }
                       />
+                      <p className="text-xs text-slate-500">
+                        Symbols and single characters are allowed. Avoid spaces and quotes.
+                      </p>
                       <input
                         className="sm:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
                         value={editingForm.urlTemplate}

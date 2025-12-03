@@ -16,7 +16,10 @@ export const metadata: Metadata = {
   title: "Engine Proxy",
   description: "Self-hosted shortcut-powered search proxy",
   icons: {
-    icon: "/logo.png",
+    // Use the shared logo for all favicon variants.
+    icon: "/logo.jpeg",
+    shortcut: "/logo.jpeg",
+    apple: "/logo.jpeg",
   },
 };
 
@@ -26,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-google-analytics-opt-out="">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

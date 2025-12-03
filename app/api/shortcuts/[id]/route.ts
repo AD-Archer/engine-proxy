@@ -54,6 +54,19 @@ export async function PUT(
 
   const data = parsed.data;
 
+  // Check for duplicate shortcut if shortcut is being updated
+  if (data.shortcut !== undefined) {
+    const existing = await prisma.searchEngine.findFirst({
+      where: { shortcut: data.shortcut, id: { not: engineId } },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: { message: `Shortcut "${data.shortcut}" already exists` } },
+        { status: 409 }
+      );
+    }
+  }
+
   if (data.isDefault) {
     await prisma.searchEngine.updateMany({ data: { isDefault: false } });
   }

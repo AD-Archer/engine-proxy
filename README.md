@@ -12,9 +12,46 @@ A self-hosted Next.js app that acts as a shortcut-aware search proxy. Add as man
 
 ### Requirements
 
+To run Engine Proxy, choose one of the following options:
+
+#### Option 1: Using Docker (Recommended for easy setup)
+- Docker
+
+#### Option 2: Local development
 - Node.js 22+
 - pnpm (Corepack already enabled)
 - SQLite (bundled through `better-sqlite3`)
+
+### Docker
+
+The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma, and `better-sqlite3` ready to go. Nothing from your local `.env` is baked into the layers—the `.dockerignore` excludes it so secrets are only injected when a container starts.
+
+1. Create the docker compose:
+   ```yaml
+   services:
+  engine-proxy:
+    image: adarcher/engine-proxy:latest
+    container_name: engine-proxy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:./prisma/data.db" # change if you prefer a different SQLite path
+      ADMIN_USERNAME: "admin"              # set your admin username
+      ADMIN_PASSWORD: "change-me"          # set your admin password
+      COOKIE_SECURE: false                 # set to true if you require HTTPS
+      # SKIP_DB_SETUP: "true"              # uncomment to skip db push/seed on start
+    volumes:
+      - sqlite-data:/app/prisma # Named volume (default)
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:
+   ```
+
+2. Start the docker container
+   ```bash
+   docker compose up -d
+   ```
 
 ### Local setup
 
@@ -61,30 +98,6 @@ pnpm db:push         # apply schema changes to SQLite
 pnpm db:seed         # re-seed default engines (idempotent)
 pnpm prisma:generate  # regenerate the Prisma client if needed
 ```
-
-### Docker
-
-The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma, and `better-sqlite3` ready to go. Nothing from your local `.env` is baked into the layers—the `.dockerignore` excludes it so secrets are only injected when a container starts.
-
-1. Clone the repo and enter it:
-   ```bash
-   git clone https://github.com/AD-Archer/engine-proxy.git
-   cd engine-proxy
-   ```
-2. Create a production `.env` next to `docker-compose.yml`:
-   ```env
-   DATABASE_URL="file:./prisma/data.db"
-   ADMIN_USERNAME="your-admin"
-   ADMIN_PASSWORD="super-secret"
-   PORT=3000
-   # SKIP_DB_SETUP=true  # optional
-   ```
-3. First run: build the image and start everything with Compose (this automatically mounts the SQLite file on a named volume):
-   ```bash
-   docker compose build --no-cache
-   docker compose up -d
-   ```
-   On subsequent updates, a simple `docker compose up -d` refreshes the container with the latest env vars.
 
 
 Key environment variables:

@@ -25,6 +25,17 @@ export async function POST(request: Request) {
 
   const data = parsed.data;
 
+  // Check for duplicate shortcut
+  const existing = await prisma.searchEngine.findUnique({
+    where: { shortcut: data.shortcut },
+  });
+  if (existing) {
+    return NextResponse.json(
+      { error: { message: `Shortcut "${data.shortcut}" already exists` } },
+      { status: 409 }
+    );
+  }
+
   if (data.isDefault) {
     await prisma.searchEngine.updateMany({ data: { isDefault: false } });
   }
@@ -33,16 +44,6 @@ export async function POST(request: Request) {
     const created = await prisma.searchEngine.create({ data });
     return NextResponse.json({ data: toEngineDTO(created) }, { status: 201 });
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: { message: "Shortcut already exists" } },
-        { status: 409 }
-      );
-    }
-
     console.error("Failed to create engine", error);
     return NextResponse.json(
       { error: { message: "Unable to save shortcut" } },

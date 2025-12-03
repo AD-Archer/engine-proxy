@@ -25,6 +25,9 @@ export const SearchConsole = ({ engines }: SearchConsoleProps) => {
     );
   }, [engines, defaultEngine, selectedShortcut]);
 
+  const activeEngineDescription =
+    selectedEngine?.description ?? defaultEngine?.description;
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFeedback(null);
@@ -73,16 +76,30 @@ export const SearchConsole = ({ engines }: SearchConsoleProps) => {
 
   return (
     <section className="w-full rounded-2xl border border-zinc-200/80 bg-white/90 p-6 shadow-xl shadow-zinc-200/60 backdrop-blur">
-      <div className="mb-6">
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Active engine
-        </p>
-        <p className="text-2xl font-semibold text-zinc-900">
-          {selectedEngine?.displayName ?? defaultEngine.displayName}
-          <span className="ml-2 text-base font-normal text-zinc-500">
+      <div className="mb-6 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-indigo-50 px-5 py-4 shadow-inner shadow-indigo-100">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
+            Active engine
+          </p>
+          {selectedEngine?.isDefault && (
+            <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+              Default
+            </span>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <p className="text-2xl font-semibold text-zinc-900">
+            {selectedEngine?.displayName ?? defaultEngine.displayName}
+          </p>
+          <span className="rounded-full border border-indigo-200 bg-white px-3 py-1 text-sm font-semibold text-indigo-700">
             @{selectedEngine?.shortcut ?? defaultEngine.shortcut}
           </span>
-        </p>
+          {activeEngineDescription && (
+            <span className="text-sm text-zinc-600">
+              {activeEngineDescription}
+            </span>
+          )}
+        </div>
       </div>
 
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -94,14 +111,23 @@ export const SearchConsole = ({ engines }: SearchConsoleProps) => {
           type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={`Try ${defaultEngine.shortcut} open web privacy`}
+          placeholder={`Now searching with @${(selectedEngine?.shortcut ?? defaultEngine.shortcut) || ""}`}
           className="w-full rounded-xl border border-zinc-200/80 bg-white px-4 py-3 text-lg text-zinc-900 shadow-inner shadow-white/40 outline-none ring-2 ring-transparent transition focus:border-zinc-400 focus:ring-indigo-200"
         />
-        <div className="flex flex-wrap gap-2 text-sm text-zinc-500">
-          <span className="font-medium text-zinc-600">Tips:</span>
-          <span>Start with a shortcut name to use that engine.</span>
-          <span>Use @shortcut to search on the default engine.</span>
-          <span>Press enter to search via the active engine.</span>
+        <div className="flex flex-wrap gap-2 text-sm text-zinc-600">
+          <span className="font-semibold text-zinc-700">Tips:</span>
+          <span className="rounded-full bg-zinc-100 px-3 py-1">
+            Shortcuts can be symbols too (e.g. !, ?ai, /g for Google).
+          </span>
+          <span className="rounded-full bg-zinc-100 px-3 py-1">
+            Start queries with a shortcut to jump engines instantly.
+          </span>
+          <span className="rounded-full bg-zinc-100 px-3 py-1">
+            Type a saved shortcut + text to search via the default engine.
+          </span>
+          <span className="rounded-full bg-zinc-100 px-3 py-1">
+            Press Enter to search with the highlighted active engine.
+          </span>
         </div>
         {feedback && <p className="text-sm text-amber-600">{feedback}</p>}
         <button

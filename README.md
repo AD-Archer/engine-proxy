@@ -34,23 +34,23 @@ The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma
 1. Create the docker compose:
    ```yaml
    services:
-  engine-proxy:
-    image: adarcher/engine-proxy:latest
-    container_name: engine-proxy
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: "file:./prisma/data.db" # change if you prefer a different SQLite path
-      ADMIN_USERNAME: "admin"              # set your admin username
-      ADMIN_PASSWORD: "change-me"          # set your admin password
-      COOKIE_SECURE: false                 # set to true if you require HTTPS
-      # SKIP_DB_SETUP: "true"              # uncomment to skip db push/seed on start
-    volumes:
-      - sqlite-data:/app/prisma # Named volume (default)
-    restart: unless-stopped
+     engine-proxy:
+       image: adarcher/engine-proxy:latest
+       container_name: engine-proxy
+       ports:
+         - "3000:3000"
+       environment:
+         DATABASE_URL: "file:./prisma/data.db" # change if you prefer a different SQLite path
+         ADMIN_USERNAME: "admin"              # set your admin username
+         ADMIN_PASSWORD: "change-me"          # set your admin password
+         COOKIE_SECURE: false                 # set to true if you require HTTPS
+         # SKIP_DB_SETUP: "true"              # uncomment to skip db push/seed on start
+       volumes:
+         - sqlite-data:/app/prisma # Named volume (default)
+       restart: unless-stopped
 
-volumes:
-  sqlite-data:
+   volumes:
+     sqlite-data:
    ```
 
 2. Start the docker container

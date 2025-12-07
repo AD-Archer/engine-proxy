@@ -1,4 +1,9 @@
 ## Engine Proxy
+<img width="1430" height="882" alt="Screenshot 2025-12-06 at 10 21 26 PM" src="https://github.com/user-attachments/assets/054c89ef-39ea-48c7-9c7a-4baa18894c6b" />
+
+<img width="1430" height="882" alt="Screenshot 2025-12-06 at 10 21 26 PM" src="https://github.com/user-attachments/assets/2b55c747-6864-4b80-a871-d8ceadde3271" />
+
+
 
 A self-hosted Next.js app that acts as a shortcut-aware search proxy. Add as many search engines or AI tools as you like, then search with commands such as `@duck privacy coins` or fall back to your default provider.
 

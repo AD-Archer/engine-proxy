@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useToast } from "@/components/toast/provider";
+import type { SearchEngineDTO } from "@/types/search-engine";
 import { load as yamlLoad, dump as yamlDump } from "js-yaml";
 
-import type { SearchEngineDTO } from "@/types/search-engine";
 
 type EngineFormState = {
   displayName: string;
@@ -92,7 +93,7 @@ const normalize = (engine: SearchEngineDTO): EngineFormState => ({
 export const AdminDashboard = ({ initialEngines }: Props) => {
   const [engines, setEngines] = useState(initialEngines);
   const [form, setForm] = useState<EngineFormState>(emptyForm);
-  const [status, setStatus] = useState<{ message: string; tone: "success" | "error" } | null>(null);
+  const [createStatus, setCreateStatus] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingForm, setEditingForm] = useState<EngineFormState | null>(null);
@@ -102,6 +103,9 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
   const [importText, setImportText] = useState<string>("");
   const [importMode, setImportMode] = useState<"add"|"combine"|"overwrite">("add");
   const [importBusy, setImportBusy] = useState(false);
+
+  // Toasts
+  const { success, error: toastError, info, confirm } = useToast();
 
   const sortedEngines = useMemo(() => {
     return [...engines].sort((a, b) =>
@@ -123,7 +127,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     id: number | null
   ) => {
     setBusy(true);
-    setStatus(null);
+    setCreateStatus(null);
     setEditFeedback(null);
     setProtocolWarning(null);
     setEditProtocolWarning(null);
@@ -133,6 +137,12 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
         ...formData,
         urlTemplate: formData.urlTemplate ? normalizeUrlTemplate(formData.urlTemplate) : undefined,
       };
+
+      // Notify the user if the URL will have a protocol auto-prepended
+      if (body.urlTemplate && needsProtocol(String(body.urlTemplate))) {
+        info(PROTOCOL_WARNING_MESSAGE);
+      }
+
       const url = id ? `/api/shortcuts/${id}` : "/api/shortcuts";
       const method = id ? "PUT" : "POST";
       const response = await fetch(url, {
@@ -151,16 +161,22 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
       if (!id) {
         setForm(emptyForm);
         setProtocolWarning(null);
+        setCreateStatus({ message: "Shortcut created", tone: "success" });
       } else {
         setEditingId(null);
         setEditingForm(null);
         setEditProtocolWarning(null);
       }
+
       await refresh();
-      setStatus({ message: id ? "Shortcut updated" : "Shortcut created", tone: "success" });
+      const successMessage = id ? "Shortcut updated" : "Shortcut created";
+      success(successMessage);
     } catch (error) {
       if (error instanceof Error) {
-        setStatus({ message: error.message, tone: "error" });
+        if (!id) {
+          setCreateStatus({ message: error.message, tone: "error" });
+        }
+        toastError(error.message);
         if (id) {
           setEditFeedback(error.message);
         }
@@ -177,7 +193,6 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
 
   const handleDelete = async (id: number) => {
     setBusy(true);
-    setStatus(null);
     setEditFeedback(null);
     setProtocolWarning(null);
     setEditProtocolWarning(null);
@@ -190,10 +205,11 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
         throw new Error(payload.error?.message ?? "Unable to delete shortcut");
       }
       await refresh();
-      setStatus({ message: "Shortcut removed", tone: "success" });
+      const msg = "Shortcut removed";
+      success(msg);
     } catch (error) {
       if (error instanceof Error) {
-        setStatus({ message: error.message, tone: "error" });
+        toastError(error.message);
       }
     } finally {
       setBusy(false);
@@ -214,7 +230,6 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
   const openEditor = (engine: SearchEngineDTO) => {
     setEditingId(engine.id);
     setEditingForm(normalize(engine));
-    setStatus(null);
     setEditFeedback(null);
     setEditProtocolWarning(null);
   };
@@ -366,15 +381,15 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
             </button>
           </div>
         </form>
-        {status && (
+        {createStatus && (
           <p
             className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
-              status.tone === "error"
+              createStatus.tone === "error"
                 ? "border-red-200 bg-red-50 text-red-700"
                 : "border-emerald-200 bg-emerald-50 text-emerald-700"
             }`}
           >
-            {status.message}
+            {createStatus.message}
           </p>
         )}
       </section>
@@ -397,7 +412,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                   engine.isDefault ? "rounded-xl bg-rose-50/80 px-3" : ""
                 }`}
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3">
                   <div>
                     <p className="text-lg font-semibold text-slate-900">
                       {engine.displayName}
@@ -548,15 +563,14 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            onClick={async () => {
-              try {
-                setBusy(true);
-                setStatus(null);
-                const res = await fetch("/api/shortcuts", { cache: "no-store" });
-                const payload = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                  throw new Error(payload.error?.message ?? "Unable to export shortcuts");
-                }
+          onClick={async () => {
+            try {
+              setBusy(true);
+              const res = await fetch("/api/shortcuts", { cache: "no-store" });
+              const payload = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                throw new Error(payload.error?.message ?? "Unable to export shortcuts");
+              }
                 const data = payload.data ?? [];
                 const now = new Date().toISOString().split("T")[0];
                 const fileNameBase = `searchengines-engineproxy-${now}`;
@@ -568,32 +582,32 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                 a.href = jsonUrl;
                 a.download = `${fileNameBase}.json`;
                 document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(jsonUrl);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(jsonUrl);
 
-                setStatus({ message: "Export downloaded", tone: "success" });
-              } catch (err) {
-                setStatus({ message: err instanceof Error ? err.message : "Export failed", tone: "error" });
-              } finally {
-                setBusy(false);
-              }
-            }}
+              success("Export downloaded");
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : "Export failed";
+              toastError(msg);
+            } finally {
+              setBusy(false);
+            }
+          }}
           >
             Export JSON
           </button>
 
           <button
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            onClick={async () => {
-              try {
-                setBusy(true);
-                setStatus(null);
-                const res = await fetch("/api/shortcuts", { cache: "no-store" });
-                const payload = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                  throw new Error(payload.error?.message ?? "Unable to export shortcuts");
-                }
+          onClick={async () => {
+            try {
+              setBusy(true);
+              const res = await fetch("/api/shortcuts", { cache: "no-store" });
+              const payload = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                throw new Error(payload.error?.message ?? "Unable to export shortcuts");
+              }
                 const data = payload.data ?? [] as SearchEngineDTO[];
                 const now = new Date().toISOString().split("T")[0];
                 const fileNameBase = `searchengines-engineproxy-${now}`;
@@ -606,17 +620,18 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                 b.href = yamlUrl;
                 b.download = `${fileNameBase}.yaml`;
                 document.body.appendChild(b);
-                b.click();
-                b.remove();
-                URL.revokeObjectURL(yamlUrl);
+              b.click();
+              b.remove();
+              URL.revokeObjectURL(yamlUrl);
 
-                setStatus({ message: "Export downloaded", tone: "success" });
-              } catch (err) {
-                setStatus({ message: err instanceof Error ? err.message : "Export failed", tone: "error" });
-              } finally {
-                setBusy(false);
-              }
-            }}
+              success("Export downloaded");
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : "Export failed";
+              toastError(msg);
+            } finally {
+              setBusy(false);
+            }
+          }}
           >
             Export YAML
           </button>
@@ -627,18 +642,17 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
               accept=".json,.yaml,.yml,application/json,text/yaml"
               className="hidden"
               onChange={async (e) => {
-                const file = e.target.files ? e.target.files[0] : null;
-                if (!file) return;
-                setStatus(null);
-                setEditFeedback(null);
-                try {
-                  const text = await file.text();
-                  setImportText(text);
-                  setStatus({ message: `Loaded ${file.name}`, tone: "success" });
-                } catch {
-                  setStatus({ message: "Unable to read file", tone: "error" });
-                }
-              }}
+              const file = e.target.files ? e.target.files[0] : null;
+              if (!file) return;
+              setEditFeedback(null);
+              try {
+                const text = await file.text();
+                setImportText(text);
+                success(`Loaded ${file.name}`);
+              } catch {
+                toastError("Unable to read file");
+              }
+            }}
             />
             Import from file (JSON/YAML)
           </label>
@@ -658,7 +672,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
               const reader = new FileReader();
               reader.onload = () => {
                 setImportText(String(reader.result ?? ""));
-                setStatus({ message: `Loaded ${file.name}`, tone: "success" });
+                success(`Loaded ${file.name}`);
               };
               reader.readAsText(file);
             }}
@@ -684,11 +698,10 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
               disabled={importBusy}
               onClick={async () => {
                 setImportBusy(true);
-                setStatus(null);
 
                 // Confirm destructive action
                 if (importMode === "overwrite") {
-                  const confirmed = window.confirm(
+                  const confirmed = await confirm(
                     "Overwrite will remove ALL current shortcuts and replace them with the imported list. This cannot be undone. Are you sure you want to continue?"
                   );
                   if (!confirmed) {
@@ -730,9 +743,10 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                   }
 
                   await refresh();
-                  setStatus({ message: "Import completed", tone: "success" });
+                  success("Import completed");
                 } catch (err) {
-                  setStatus({ message: err instanceof Error ? err.message : "Import failed", tone: "error" });
+                  const msg = err instanceof Error ? err.message : "Import failed";
+                  toastError(msg);
                 } finally {
                   setImportBusy(false);
                 }
@@ -743,7 +757,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
 
             <button
               className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-slate-900 hover:bg-slate-50"
-              onClick={() => { setImportText(""); setStatus(null); }}
+              onClick={() => { setImportText(""); }}
             >
               Clear
             </button>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import ToastProvider from "@/components/toast/provider";
 import Footer from "@/components/footer";
 import { fetchEngines } from "@/lib/engines";
 
@@ -38,9 +39,11 @@ export default async function AdminPage() {
             </Link>
           </div>
         </header>
-        <AdminDashboard initialEngines={engines} />
-        <Footer admin />
+        <ToastProvider>
+          <AdminDashboard initialEngines={engines} />
+        </ToastProvider>
       </main>
+      <Footer admin />
     </div>
   );
 }

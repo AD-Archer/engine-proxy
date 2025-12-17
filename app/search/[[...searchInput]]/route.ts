@@ -12,6 +12,20 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ searchInput?: string[] }> }
 ) {
+  // If the request used a ?q= param we want to send the visitor to the home page
+  // where the search UI lives (preserving the q param). This makes direct
+  // links to /search?q=... land on the home page instead of triggering an
+  // immediate external redirect.
+  if (request.nextUrl.searchParams.has("q")) {
+    const home = new URL("/", request.url);
+    const q = request.nextUrl.searchParams.get("q") ?? "";
+    if (q.trim() === "") {
+      return NextResponse.redirect(home);
+    }
+    home.searchParams.set("q", q);
+    return NextResponse.redirect(home);
+  }
+
   const queryParam = request.nextUrl.searchParams.get("q");
   const params = await context.params;
   const pathSegments = params.searchInput ?? [];

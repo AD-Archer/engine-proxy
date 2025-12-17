@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { Prisma } from "@/app/generated/prisma/client";
+
 
 import { fetchEngines } from "@/lib/engines";
 import { prisma } from "@/lib/prisma";

@@ -27,6 +27,7 @@ export function SignInForm({
     <form
       action={formAction}
       data-lpignore="true"
+      suppressHydrationWarning
       className="space-y-6 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-xl shadow-slate-200/70"
     >
       <div>
@@ -42,7 +43,7 @@ export function SignInForm({
 
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
-      <div className="space-y-1">
+      <div className="space-y-1" suppressHydrationWarning>
         <label
           className="text-sm font-medium text-slate-700"
           htmlFor="username"
@@ -61,7 +62,7 @@ export function SignInForm({
         />
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1" suppressHydrationWarning>
         <label
           className="text-sm font-medium text-slate-700"
           htmlFor="password"

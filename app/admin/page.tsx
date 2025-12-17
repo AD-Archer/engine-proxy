@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import Footer from "@/components/footer";
 import { fetchEngines } from "@/lib/engines";
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export default async function AdminPage() {
   const engines = await fetchEngines();
 
   return (
-    <div className="min-h-screen bg-slate-50 py-16">
+    <div className="min-h-screen bg-slate-50 pt-16 pb-4">
       <main className="mx-auto w-full max-w-5xl space-y-8 px-4 sm:px-6 lg:px-8">
         <header className="rounded-3xl border border-white/60 bg-white p-10 shadow-xl shadow-slate-200/70">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
@@ -38,6 +39,7 @@ export default async function AdminPage() {
           </div>
         </header>
         <AdminDashboard initialEngines={engines} />
+        <Footer admin />
       </main>
     </div>
   );

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { CollapsibleSection } from "@/components/collapsible-section";
 import { CopyButton } from "@/components/copy-button";
 import { SearchConsole } from "@/components/search/search-console";
+import Footer from "@/components/footer";
 import { fetchEngines } from "@/lib/engines";
 
 export const dynamic = "force-dynamic";
@@ -127,47 +128,8 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </CollapsibleSection>
       </main>
-      <footer className="mt-16 border-t border-slate-200 bg-slate-50 py-8">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-sm text-slate-600">
-              Built with love by{" "}
-              <a
-                href="https://www.antonioarcher.com"
-                className="text-indigo-600 hover:text-indigo-500"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Antonio Archer
-              </a>
-            </p>
-            <div className="flex gap-4">
-              <a
-                href="/admin"
-                className="text-sm text-slate-600 hover:text-slate-500"
-              >
-                Admin
-              </a>
-              <a
-                href="https://github.com/ad-archer/engine-proxy"
-                className="text-sm text-slate-600 hover:text-slate-500"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub
-              </a>
-              <a
-                href="https://hub.docker.com/r/adarcher/engine-proxy"
-                className="text-sm text-slate-600 hover:text-slate-500"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Docker Hub
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* footer */}
+      <Footer admin />
     </div>
   );
 }

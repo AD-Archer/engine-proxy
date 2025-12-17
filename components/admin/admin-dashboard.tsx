@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { load as yamlLoad, dump as yamlDump } from "js-yaml";
 
 import type { SearchEngineDTO } from "@/types/search-engine";
 
@@ -15,7 +16,7 @@ type EngineFormState = {
 const emptyForm: EngineFormState = {
   displayName: "",
   shortcut: "",
-  urlTemplate: "https://example.com/search?q={query}",
+  urlTemplate: "https://example.com/search?q=%s",
   description: "",
   isDefault: false,
 };
@@ -98,6 +99,9 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
   const [editFeedback, setEditFeedback] = useState<string | null>(null);
   const [protocolWarning, setProtocolWarning] = useState<string | null>(null);
   const [editProtocolWarning, setEditProtocolWarning] = useState<string | null>(null);
+  const [importText, setImportText] = useState<string>("");
+  const [importMode, setImportMode] = useState<"add"|"combine"|"overwrite">("add");
+  const [importBusy, setImportBusy] = useState(false);
 
   const sortedEngines = useMemo(() => {
     return [...engines].sort((a, b) =>
@@ -225,8 +229,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
   return (
     <div className="space-y-10">
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Add a shortcut</h2>
-        <p className="text-sm text-slate-500">
+        <h2 className="text-xl font-semibold text-slate-900">Add a shortcut</h2>        <p className="mt-2 text-sm text-slate-700">Export / import controls are at the bottom of the page — <a href="#export-import" className="text-indigo-600 hover:text-indigo-500">jump to Export / Import</a></p>        <p className="text-sm text-slate-500">
           Users can start queries with the shortcut name to use this engine.{" "}
           {""}
           The URL template must include{" "}
@@ -380,8 +383,11 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
         <h2 className="text-xl font-semibold text-slate-900">
           Manage shortcuts
         </h2>
+
+
+        {/* Import area removed from here and moved to the bottom of the dashboard (see section at the end of this component) */}
         {sortedEngines.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">No shortcuts yet.</p>
+          <p className="mt-4 text-sm text-slate-700">No shortcuts yet.</p>
         ) : (
           <ul className="mt-4 divide-y divide-slate-200">
             {sortedEngines.map((engine) => (
@@ -533,6 +539,216 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
             ))}
           </ul>
         )}
+      </section>
+
+      <section id="export-import" className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">Export / Import</h2>
+        <p className="mt-2 text-sm text-slate-700">Export current shortcuts or import JSON/YAML. Paste, drop, or upload a file, then choose how to merge.</p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            onClick={async () => {
+              try {
+                setBusy(true);
+                setStatus(null);
+                const res = await fetch("/api/shortcuts", { cache: "no-store" });
+                const payload = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  throw new Error(payload.error?.message ?? "Unable to export shortcuts");
+                }
+                const data = payload.data ?? [];
+                const now = new Date().toISOString().split("T")[0];
+                const fileNameBase = `searchengines-engineproxy-${now}`;
+
+                // JSON
+                const jsonBlob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const jsonUrl = URL.createObjectURL(jsonBlob);
+                const a = document.createElement("a");
+                a.href = jsonUrl;
+                a.download = `${fileNameBase}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(jsonUrl);
+
+                setStatus({ message: "Export downloaded", tone: "success" });
+              } catch (err) {
+                setStatus({ message: err instanceof Error ? err.message : "Export failed", tone: "error" });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Export JSON
+          </button>
+
+          <button
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            onClick={async () => {
+              try {
+                setBusy(true);
+                setStatus(null);
+                const res = await fetch("/api/shortcuts", { cache: "no-store" });
+                const payload = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  throw new Error(payload.error?.message ?? "Unable to export shortcuts");
+                }
+                const data = payload.data ?? [] as SearchEngineDTO[];
+                const now = new Date().toISOString().split("T")[0];
+                const fileNameBase = `searchengines-engineproxy-${now}`;
+
+                // YAML
+                const yamlText = yamlDump(data as SearchEngineDTO[]);
+                const yamlBlob = new Blob([yamlText], { type: "text/yaml" });
+                const yamlUrl = URL.createObjectURL(yamlBlob);
+                const b = document.createElement("a");
+                b.href = yamlUrl;
+                b.download = `${fileNameBase}.yaml`;
+                document.body.appendChild(b);
+                b.click();
+                b.remove();
+                URL.revokeObjectURL(yamlUrl);
+
+                setStatus({ message: "Export downloaded", tone: "success" });
+              } catch (err) {
+                setStatus({ message: err instanceof Error ? err.message : "Export failed", tone: "error" });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Export YAML
+          </button>
+
+          <label className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+            <input
+              type="file"
+              accept=".json,.yaml,.yml,application/json,text/yaml"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files ? e.target.files[0] : null;
+                if (!file) return;
+                setStatus(null);
+                setEditFeedback(null);
+                try {
+                  const text = await file.text();
+                  setImportText(text);
+                  setStatus({ message: `Loaded ${file.name}`, tone: "success" });
+                } catch {
+                  setStatus({ message: "Unable to read file", tone: "error" });
+                }
+              }}
+            />
+            Import from file (JSON/YAML)
+          </label>
+        </div>
+
+        <div className="mt-4">
+          <textarea
+            rows={8}
+            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-600"
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder='[ { "shortcut": "g", "displayName": "Google", "urlTemplate": "https://google.com/search?q={query}", "isDefault": false } ]\n# OR YAML list\n- shortcut: g\n  displayName: Google\n  urlTemplate: https://google.com/search?q={query}\n  isDefault: false'
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer?.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                setImportText(String(reader.result ?? ""));
+                setStatus({ message: `Loaded ${file.name}`, tone: "success" });
+              };
+              reader.readAsText(file);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+          />
+
+          <div className="mt-3 flex items-center gap-4">
+            <label className="text-sm text-slate-700">
+              <input type="radio" name="importModeBottom" checked={importMode === "add"} onChange={() => setImportMode("add")} /> Add missing only
+            </label>
+            <label className="text-sm text-slate-700">
+              <input type="radio" name="importModeBottom" checked={importMode === "combine"} onChange={() => setImportMode("combine")} /> Combine (keep both)
+            </label>
+            <label className="text-sm text-slate-700">
+              <input type="radio" name="importModeBottom" checked={importMode === "overwrite"} onChange={() => setImportMode("overwrite")} /> Overwrite
+              <span className="ml-2 inline-block rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">Destructive</span>
+            </label>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <button
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-white"
+              disabled={importBusy}
+              onClick={async () => {
+                setImportBusy(true);
+                setStatus(null);
+
+                // Confirm destructive action
+                if (importMode === "overwrite") {
+                  const confirmed = window.confirm(
+                    "Overwrite will remove ALL current shortcuts and replace them with the imported list. This cannot be undone. Are you sure you want to continue?"
+                  );
+                  if (!confirmed) {
+                    setImportBusy(false);
+                    return;
+                  }
+                }
+
+                try {
+                  let parsed: unknown;
+
+                  // Try JSON first
+                  try {
+                    parsed = JSON.parse(importText || "[]");
+                  } catch {
+                    // Try YAML
+                    try {
+                      const yamlVal = yamlLoad(importText || "");
+                      parsed = yamlVal;
+                    } catch {
+                      throw new Error("Invalid JSON or YAML");
+                    }
+                  }
+
+                  if (!Array.isArray(parsed)) {
+                    throw new Error("Expected an array of engines");
+                  }
+
+                  const res = await fetch("/api/shortcuts/import", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mode: importMode, engines: parsed }),
+                  });
+
+                  const payload = await res.json().catch(() => ({}));
+
+                  if (!res.ok) {
+                    throw new Error(payload.error?.message ?? "Import failed");
+                  }
+
+                  await refresh();
+                  setStatus({ message: "Import completed", tone: "success" });
+                } catch (err) {
+                  setStatus({ message: err instanceof Error ? err.message : "Import failed", tone: "error" });
+                } finally {
+                  setImportBusy(false);
+                }
+              }}
+            >
+              {importBusy ? "Importing..." : "Import"}
+            </button>
+
+            <button
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-slate-900 hover:bg-slate-50"
+              onClick={() => { setImportText(""); setStatus(null); }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
       </section>
     </div>
   );

@@ -2,6 +2,21 @@ import { z } from "zod";
 
 import { normalizeShortcut } from "@/lib/shortcuts";
 
+/**
+ * Helper to check if a URL was auto-corrected to include https://
+ */
+export function wasProtocolAdded(originalUrl: string, normalizedUrl: string): boolean {
+  if (typeof originalUrl !== "string" || typeof normalizedUrl !== "string") {
+    return false;
+  }
+  
+  // Check if original URL didn't have a protocol
+  const hadProtocol = /^https?:\/\//i.test(originalUrl);
+  const hasProtocolNow = /^https?:\/\//i.test(normalizedUrl);
+  
+  return !hadProtocol && hasProtocolNow;
+}
+
 const shortcutSchema = z
   .string()
   .min(1, "Shortcut should be at least 1 character")
@@ -11,7 +26,15 @@ const shortcutSchema = z
 
 const urlTemplateSchema = z.preprocess((val) => {
   if (typeof val === "string") {
-    return val.replace(/%s/g, "{query}");
+    // First replace %s with {query}
+    let normalized = val.replace(/%s/g, "{query}");
+    
+    // Auto-prepend https:// if no protocol is present
+    if (!/^https?:\/\//i.test(normalized)) {
+      normalized = `https://${normalized}`;
+    }
+    
+    return normalized;
   }
   return val;
 }, z

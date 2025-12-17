@@ -41,7 +41,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const incomingQuery = params?.q;
   if (typeof incomingQuery === "string" && incomingQuery.trim().length > 0) {
-    redirect(`/go?q=${encodeURIComponent(incomingQuery)}`);
+    redirect(`/search?q=${encodeURIComponent(incomingQuery)}`);
   }
 
   const headersList = await headers();

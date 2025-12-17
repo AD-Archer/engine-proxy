@@ -13,17 +13,16 @@ export async function GET(
   context: { params: Promise<{ searchInput?: string[] }> }
 ) {
   // If the request used a ?q= param we want to send the visitor to the home page
-  // where the search UI lives (preserving the q param). This makes direct
-  // links to /search?q=... land on the home page instead of triggering an
-  // immediate external redirect.
+  // where the search UI lives ONLY if the query is empty.
+  // This allows browser search engines to work (which use ?q=) while still
+  // providing a way to land on the home page via /search?q=
   if (request.nextUrl.searchParams.has("q")) {
-    const home = new URL("/", request.url);
     const q = request.nextUrl.searchParams.get("q") ?? "";
     if (q.trim() === "") {
+      const home = new URL("/", request.url);
       return NextResponse.redirect(home);
     }
-    home.searchParams.set("q", q);
-    return NextResponse.redirect(home);
+    // If q is not empty, we proceed to proxy it.
   }
 
   const queryParam = request.nextUrl.searchParams.get("q");

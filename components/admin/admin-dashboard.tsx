@@ -37,6 +37,8 @@ const needsProtocol = (url: string): boolean => {
   return !/^https?:\/\//i.test(url);
 };
 
+const PROTOCOL_WARNING_MESSAGE = "Note: https:// will be automatically added to your URL";
+
 const extractErrorMessage = (
   payload: unknown,
   fallback: string
@@ -311,7 +313,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                 
                 // Check if protocol will be auto-added
                 if (needsProtocol(newUrl)) {
-                  setProtocolWarning(`Note: https:// will be automatically added to your URL`);
+                  setProtocolWarning(PROTOCOL_WARNING_MESSAGE);
                 } else {
                   setProtocolWarning(null);
                 }
@@ -474,7 +476,7 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                             
                             // Check if protocol will be auto-added
                             if (needsProtocol(newUrl)) {
-                              setEditProtocolWarning(`Note: https:// will be automatically added to your URL`);
+                              setEditProtocolWarning(PROTOCOL_WARNING_MESSAGE);
                             } else {
                               setEditProtocolWarning(null);
                             }

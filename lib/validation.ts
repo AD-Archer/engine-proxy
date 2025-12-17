@@ -11,7 +11,15 @@ const shortcutSchema = z
 
 const urlTemplateSchema = z.preprocess((val) => {
   if (typeof val === "string") {
-    return val.replace(/%s/g, "{query}");
+    // First replace %s with {query}
+    let normalized = val.replace(/%s/g, "{query}");
+    
+    // Auto-prepend https:// if no protocol is present
+    if (!/^https?:\/\//i.test(normalized)) {
+      normalized = `https://${normalized}`;
+    }
+    
+    return normalized;
   }
   return val;
 }, z

@@ -27,6 +27,18 @@ type Props = {
 const normalizeUrlTemplate = (value: string) =>
   value.replace(/%s/g, "{query}");
 
+/**
+ * Check if a URL will have https:// auto-prepended
+ */
+const needsProtocol = (url: string): boolean => {
+  if (typeof url !== "string" || url.trim() === "") {
+    return false;
+  }
+  return !/^https?:\/\//i.test(url);
+};
+
+const PROTOCOL_WARNING_MESSAGE = "Note: https:// will be automatically added to your URL";
+
 const extractErrorMessage = (
   payload: unknown,
   fallback: string
@@ -84,6 +96,8 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingForm, setEditingForm] = useState<EngineFormState | null>(null);
   const [editFeedback, setEditFeedback] = useState<string | null>(null);
+  const [protocolWarning, setProtocolWarning] = useState<string | null>(null);
+  const [editProtocolWarning, setEditProtocolWarning] = useState<string | null>(null);
 
   const sortedEngines = useMemo(() => {
     return [...engines].sort((a, b) =>
@@ -107,6 +121,8 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     setBusy(true);
     setStatus(null);
     setEditFeedback(null);
+    setProtocolWarning(null);
+    setEditProtocolWarning(null);
 
     try {
       const body = {
@@ -130,9 +146,11 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
 
       if (!id) {
         setForm(emptyForm);
+        setProtocolWarning(null);
       } else {
         setEditingId(null);
         setEditingForm(null);
+        setEditProtocolWarning(null);
       }
       await refresh();
       setStatus({ message: id ? "Shortcut updated" : "Shortcut created", tone: "success" });
@@ -157,6 +175,8 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     setBusy(true);
     setStatus(null);
     setEditFeedback(null);
+    setProtocolWarning(null);
+    setEditProtocolWarning(null);
     try {
       const response = await fetch(`/api/shortcuts/${id}`, {
         method: "DELETE",
@@ -192,12 +212,14 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
     setEditingForm(normalize(engine));
     setStatus(null);
     setEditFeedback(null);
+    setEditProtocolWarning(null);
   };
 
   const closeEditor = () => {
     setEditingId(null);
     setEditingForm(null);
     setEditFeedback(null);
+    setEditProtocolWarning(null);
   };
 
   return (
@@ -285,11 +307,24 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
               id="urlTemplate"
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
               value={form.urlTemplate}
-              onChange={(event) =>
-                setForm({ ...form, urlTemplate: event.target.value })
-              }
+              onChange={(event) => {
+                const newUrl = event.target.value;
+                setForm({ ...form, urlTemplate: newUrl });
+                
+                // Check if protocol will be auto-added
+                if (needsProtocol(newUrl)) {
+                  setProtocolWarning(PROTOCOL_WARNING_MESSAGE);
+                } else {
+                  setProtocolWarning(null);
+                }
+              }}
               required
             />
+            {protocolWarning && (
+              <p className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                ℹ️ {protocolWarning}
+              </p>
+            )}
           </div>
           <div className="sm:col-span-2">
             <label
@@ -428,16 +463,31 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
                       <p className="text-xs text-slate-500">
                         Symbols and single characters are allowed. Avoid spaces and quotes.
                       </p>
-                      <input
-                        className="sm:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
-                        value={editingForm.urlTemplate}
-                        onChange={(event) =>
-                          setEditingForm({
-                            ...editingForm,
-                            urlTemplate: event.target.value,
-                          })
-                        }
-                      />
+                      <div className="sm:col-span-2">
+                        <input
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                          value={editingForm.urlTemplate}
+                          onChange={(event) => {
+                            const newUrl = event.target.value;
+                            setEditingForm({
+                              ...editingForm,
+                              urlTemplate: newUrl,
+                            });
+                            
+                            // Check if protocol will be auto-added
+                            if (needsProtocol(newUrl)) {
+                              setEditProtocolWarning(PROTOCOL_WARNING_MESSAGE);
+                            } else {
+                              setEditProtocolWarning(null);
+                            }
+                          }}
+                        />
+                        {editProtocolWarning && (
+                          <p className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                            ℹ️ {editProtocolWarning}
+                          </p>
+                        )}
+                      </div>
                       <textarea
                         rows={3}
                         className="sm:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"

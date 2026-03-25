@@ -3,50 +3,52 @@ import { NextResponse, type NextRequest } from "next/server";
 import { fetchEngines } from "@/lib/engines";
 import { buildSearchUrl, parseSearchInput } from "@/lib/search";
 
-const redirectHome = (request: NextRequest) => {
-  const home = new URL("/", request.url);
-  return NextResponse.redirect(home);
+const redirectHome = () => {
+  return new NextResponse(null, {
+    status: 307,
+    headers: {
+      Location: "/",
+    },
+  });
 };
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ searchInput?: string[] }> }
 ) {
-  // If the request used a ?q= param we want to send the visitor to the home page
-  // where the search UI lives ONLY if the query is empty.
-  // This allows browser search engines to work (which use ?q=) while still
-  // providing a way to land on the home page via /search?q=
-  if (request.nextUrl.searchParams.has("q")) {
-    const q = request.nextUrl.searchParams.get("q") ?? "";
-    if (q.trim() === "") {
-      const home = new URL("/", request.url);
-      return NextResponse.redirect(home);
-    }
-    // If q is not empty, we proceed to proxy it.
-  }
-
   const queryParam = request.nextUrl.searchParams.get("q");
   const params = await context.params;
   const pathSegments = params.searchInput ?? [];
   const pathInput = pathSegments
     .map((segment) => decodeURIComponent(segment))
-    .join("/");
-  const rawInput = (queryParam ?? pathInput).trim();
+    .join("/")
+    .replace(/\+/g, " ");
+
+  // When ?q= exists but is blank we only send users home if the path form
+  // (/search/<query>) also doesn't contain a query.
+  if (request.nextUrl.searchParams.has("q")) {
+    const q = queryParam ?? "";
+    if (q.trim() === "" && pathInput.trim() === "") {
+      return redirectHome();
+    }
+  }
+
+  const rawInput = (queryParam?.trim() ? queryParam : pathInput).trim();
 
   if (!rawInput) {
-    return redirectHome(request);
+    return redirectHome();
   }
 
   const engines = await fetchEngines();
   if (engines.length === 0) {
-    return redirectHome(request);
+    return redirectHome();
   }
 
   const parsed = parseSearchInput(rawInput);
   let sanitizedQuery = parsed.query.trim();
 
   if (!sanitizedQuery && !parsed.shortcut) {
-    return redirectHome(request);
+    return redirectHome();
   }
 
   let targetEngine =
@@ -65,7 +67,7 @@ export async function GET(
   }
 
   if (!targetEngine || !sanitizedQuery) {
-    return redirectHome(request);
+    return redirectHome();
   }
 
   const targetUrl = buildSearchUrl(targetEngine.urlTemplate, sanitizedQuery);

@@ -1,7 +1,19 @@
 services:
+  engine-proxy-migrate:
+    image: adarcher/engine-proxy:latest
+    environment:
+      DATABASE_URL: "file:./prisma/data.db" # keep in sync with engine-proxy
+    volumes:
+      - sqlite-data:/app/prisma # same DB volume as the app
+    entrypoint: ["/app/docker-migrate.sh"]
+    restart: "no"
+
   engine-proxy:
     image: adarcher/engine-proxy:latest
     container_name: engine-proxy
+    depends_on:
+      engine-proxy-migrate:
+        condition: service_completed_successfully
     ports:
       - "3000:3000"
     environment:
@@ -9,7 +21,7 @@ services:
       ADMIN_USERNAME: "admin"              # set your admin username
       ADMIN_PASSWORD: "change-me"          # set your admin password
       COOKIE_SECURE: false                 # set to true if you require HTTPS
-      # SKIP_DB_SETUP: "true"              # uncomment to skip db push/seed on start
+      SKIP_DB_SETUP: "true"                # skip seed on app boot; db:push still runs (seed handled by engine-proxy-migrate)
     volumes:
       - sqlite-data:/app/prisma # Named volume (default)
     restart: unless-stopped

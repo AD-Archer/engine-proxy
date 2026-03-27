@@ -19,19 +19,13 @@ async function main() {
     },
   });
 
-  const existing = await prisma.searchEngine.findMany();
-  await Promise.all(
-    existing.map((engine) => {
-      const normalizedShortcut = normalizeShortcut(engine.shortcut);
-      if (normalizedShortcut === engine.shortcut) {
-        return Promise.resolve();
-      }
-      return prisma.searchEngine.update({
-        where: { id: engine.id },
-        data: { shortcut: normalizedShortcut },
-      });
-    })
-  );
+  const existingCount = await prisma.searchEngine.count();
+  if (existingCount > 0) {
+    console.log(
+      `Skipping seed: found ${existingCount} existing search engine record(s).`
+    );
+    return;
+  }
 
   for (const engine of DEFAULT_SEARCH_ENGINES) {
     const normalizedShortcut = normalizeShortcut(engine.shortcut);

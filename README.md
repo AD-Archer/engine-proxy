@@ -34,9 +34,21 @@ The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma
 1. Create the docker compose:
    ```yaml
    services:
+     engine-proxy-migrate:
+       image: adarcher/engine-proxy:latest
+       environment:
+         DATABASE_URL: "file:./prisma/data.db" # keep in sync with engine-proxy
+       volumes:
+         - sqlite-data:/app/prisma # same DB volume as the app
+       entrypoint: ["/app/docker-migrate.sh"]
+       restart: "no"
+
      engine-proxy:
        image: adarcher/engine-proxy:latest
        container_name: engine-proxy
+       depends_on:
+         engine-proxy-migrate:
+           condition: service_completed_successfully
        ports:
          - "3000:3000"
        environment:
@@ -44,7 +56,7 @@ The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma
          ADMIN_USERNAME: "admin"              # set your admin username
          ADMIN_PASSWORD: "change-me"          # set your admin password
          COOKIE_SECURE: false                 # set to true if you require HTTPS
-         # SKIP_DB_SETUP: "true"              # uncomment to skip db push/seed on start
+         SKIP_DB_SETUP: "true"                # skip seed on app boot; db:push still runs (seed handled by engine-proxy-migrate)
        volumes:
          - sqlite-data:/app/prisma # Named volume (default)
        restart: unless-stopped
@@ -53,9 +65,16 @@ The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma
      sqlite-data:
    ```
 
-2. Start the docker container
+2. Start the stack
    ```bash
    docker compose up -d
+   ```
+
+3. When you pull a newer image with schema changes, rerun the migration job once:
+   ```bash
+   docker compose run --rm --no-deps engine-proxy-migrate
+   # or: pnpm docker:migrate
+   docker compose up -d engine-proxy
    ```
 
 ### Local setup
@@ -99,6 +118,7 @@ The Dockerfile now builds a fully self-contained Next.js image with pnpm, Prisma
 ### Prisma helpers
 
 ```bash
+pnpm docker:migrate   # run the compose one-shot migration job
 pnpm db:push         # apply schema changes to SQLite
 pnpm db:seed         # re-seed default engines (idempotent)
 pnpm prisma:generate  # regenerate the Prisma client if needed
@@ -110,6 +130,6 @@ Key environment variables:
 - `DATABASE_URL` – path/connection string for Prisma (defaults to `file:./prisma/data.db` inside the container).
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` – Basic Auth credentials for `/admin` and the API.
 - `COOKIE_SECURE=true` – force secure cookies if your TLS terminator does not set `X-Forwarded-Proto`; leave unset for HTTP/local Docker so sign-in works.
-- `SKIP_DB_SETUP=true` – skips the automatic `pnpm db:push` + `pnpm db:seed` that run on each container boot if you prefer to manage migrations yourself.
+- `SKIP_DB_SETUP=true` – skips the automatic `pnpm db:seed` on app boot; `pnpm db:push` still runs to keep schema up to date.
 
 SQLite data lives under `/app/prisma`. The compose stack keeps it on the `sqlite-data` named volume by default, or you can bind-mount a host directory if you prefer to see the `data.db` file directly.

@@ -77,9 +77,10 @@ COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=build /app/tsconfig.json ./tsconfig.json
+COPY --from=build /app/docker-migrate.sh ./docker-migrate.sh
 COPY --from=build /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
-RUN chmod +x docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh docker-migrate.sh
 
 EXPOSE 3000
 VOLUME ["/app/prisma"]

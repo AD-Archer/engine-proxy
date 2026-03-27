@@ -13,7 +13,14 @@ case "$DATABASE_URL" in
     ;;
 esac
 
-/app/docker-migrate.sh
+echo "Applying Prisma schema..."
+pnpm db:push >/dev/null 2>&1 || pnpm db:push
 
-echo "Starting Engine Proxy..."
-exec pnpm start
+SKIP_DB_SETUP="${SKIP_DB_SETUP:-false}"
+
+if [ "$SKIP_DB_SETUP" = "true" ]; then
+  echo "SKIP_DB_SETUP=true; skipping seed step."
+else
+  echo "Seeding defaults (safe to rerun)..."
+  pnpm db:seed || true
+fi

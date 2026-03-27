@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "docker:build": "docker build -t engine-proxy:latest .",
     "docker:run": "docker run -d --name engine-proxy -p 3000:3000 -v sqlite-data:/app/prisma -e DATABASE_URL=\"file:./prisma/data.db\" -e ADMIN_USERNAME=\"admin\" -e ADMIN_PASSWORD=\"change-me\" engine-proxy:latest",
+    "docker:migrate": "docker compose run --rm --no-deps engine-proxy-migrate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "prisma:generate": "prisma generate",

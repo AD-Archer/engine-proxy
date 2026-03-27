@@ -7,9 +7,10 @@ import { buildSearchUrl, parseSearchInput } from "@/lib/search";
 
 type SearchConsoleProps = {
   engines: SearchEngineDTO[];
+  siteShortcut: string;
 };
 
-export const SearchConsole = ({ engines }: SearchConsoleProps) => {
+export const SearchConsole = ({ engines, siteShortcut }: SearchConsoleProps) => {
   const defaultEngine =
     engines.find((engine) => engine.isDefault) ?? engines[0];
   const [query, setQuery] = useState("");
@@ -37,7 +38,12 @@ export const SearchConsole = ({ engines }: SearchConsoleProps) => {
       return;
     }
 
-    const parsed = parseSearchInput(query);
+    const parsed = parseSearchInput(query, { siteShortcut });
+    if (parsed.directUrl) {
+      window.location.href = parsed.directUrl;
+      return;
+    }
+
     let engine = selectedEngine;
     let searchText = parsed.query;
 
@@ -127,6 +133,12 @@ export const SearchConsole = ({ engines }: SearchConsoleProps) => {
           </span>
           <span className="rounded-full bg-zinc-100 px-3 py-1">
             Press Enter to search with the highlighted active engine.
+          </span>
+          <span className="rounded-full bg-zinc-100 px-3 py-1">
+            Enter a direct host like <code>mail.google.com</code> to open it.
+          </span>
+          <span className="rounded-full bg-zinc-100 px-3 py-1">
+            Use <code>{siteShortcut}</code> then a host (or phrase) to force site mode.
           </span>
         </div>
         {feedback && <p className="text-sm text-amber-600">{feedback}</p>}

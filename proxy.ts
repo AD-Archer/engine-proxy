@@ -7,7 +7,7 @@ import {
   sanitizeRedirectPath,
 } from "@/lib/auth";
 
-const protectedPrefixes = ["/admin", "/api/shortcuts"] as const;
+const protectedPrefixes = ["/admin", "/api/shortcuts", "/api/settings"] as const;
 const adminSigninPath = "/admin/sign-in";
 
 const buildSignInRedirect = (request: NextRequest) => {
@@ -68,5 +68,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/shortcuts/:path*"],
+  matcher: ["/admin/:path*", "/api/shortcuts/:path*", "/api/settings/:path*"],
 };

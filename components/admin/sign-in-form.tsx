@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { SignInState } from "@/app/admin/sign-in/actions";
@@ -18,6 +18,7 @@ export function SignInForm({
   redirectTo,
   credentialsConfigured,
 }: Props) {
+  const [showPassword, setShowPassword] = useState(false);
   const [state, formAction] = useActionState<SignInState, FormData>(
     action,
     initialState
@@ -69,17 +70,28 @@ export function SignInForm({
         >
           Password
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          data-lpignore="true"
-          data-form-type="password"
-          data-lastpass="off"
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-          required
-        />
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            data-lpignore="true"
+            data-form-type="password"
+            data-lastpass="off"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-20 text-base text-slate-900 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+          >
+            {showPassword ? "Hide" : "View"}
+          </button>
+        </div>
       </div>
 
       {state?.error && (

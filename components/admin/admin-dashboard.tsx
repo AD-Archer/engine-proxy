@@ -24,6 +24,7 @@ const emptyForm: EngineFormState = {
 
 type Props = {
   initialEngines: SearchEngineDTO[];
+  initialSiteShortcut: string;
 };
 
 const normalizeUrlTemplate = (value: string) =>
@@ -90,8 +91,16 @@ const normalize = (engine: SearchEngineDTO): EngineFormState => ({
   isDefault: engine.isDefault,
 });
 
-export const AdminDashboard = ({ initialEngines }: Props) => {
+export const AdminDashboard = ({
+  initialEngines,
+  initialSiteShortcut,
+}: Props) => {
   const [engines, setEngines] = useState(initialEngines);
+  const [siteShortcut, setSiteShortcut] = useState(initialSiteShortcut);
+  const [siteShortcutBusy, setSiteShortcutBusy] = useState(false);
+  const [siteShortcutFeedback, setSiteShortcutFeedback] = useState<string | null>(
+    null
+  );
   const [form, setForm] = useState<EngineFormState>(emptyForm);
   const [createStatus, setCreateStatus] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -120,6 +129,40 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
       throw new Error(payload.error?.message ?? "Unable to load shortcuts");
     }
     setEngines(payload.data ?? []);
+  };
+
+  const saveSiteShortcut = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSiteShortcutBusy(true);
+    setSiteShortcutFeedback(null);
+
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteShortcut }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          extractErrorMessage(payload, "Unable to update site shortcut")
+        );
+      }
+
+      const nextShortcut =
+        typeof payload.data?.siteShortcut === "string"
+          ? payload.data.siteShortcut
+          : siteShortcut;
+      setSiteShortcut(nextShortcut);
+      success("Site shortcut updated");
+    } catch (error) {
+      if (error instanceof Error) {
+        setSiteShortcutFeedback(error.message);
+        toastError(error.message);
+      }
+    } finally {
+      setSiteShortcutBusy(false);
+    }
   };
 
   const saveShortcut = async (
@@ -243,6 +286,45 @@ export const AdminDashboard = ({ initialEngines }: Props) => {
 
   return (
     <div className="space-y-10">
+      <section className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">Site URL shortcut</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          This built-in shortcut is always available and cannot be deleted. It
+          defaults to <code className="rounded bg-slate-100 px-1">site:</code>,
+          and you can rename it (for example <code className="rounded bg-slate-100 px-1">!</code>).
+        </p>
+        <p className="mt-2 text-sm text-slate-600">
+          Example: <code className="rounded bg-slate-100 px-1">{siteShortcut} mail.google.com</code> opens Gmail directly.
+          If the text after the shortcut is not a site or IP, it runs as a normal search phrase.
+        </p>
+        <form className="mt-4 flex flex-col gap-3 sm:max-w-md" onSubmit={saveSiteShortcut}>
+          <label className="text-sm font-medium text-slate-700" htmlFor="site-shortcut">
+            Shortcut token (no spaces, no quotes)
+          </label>
+          <input
+            id="site-shortcut"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
+            value={siteShortcut}
+            pattern={String.raw`[^\s'"]+`}
+            title="Use any characters except spaces or quotes"
+            onChange={(event) => setSiteShortcut(event.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            disabled={siteShortcutBusy}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-white shadow hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {siteShortcutBusy ? "Saving..." : "Save site shortcut"}
+          </button>
+        </form>
+        {siteShortcutFeedback && (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {siteShortcutFeedback}
+          </p>
+        )}
+      </section>
+
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Add a shortcut</h2>        <p className="mt-2 text-sm text-slate-700">Export / import controls are at the bottom of the page — <a href="#export-import" className="text-indigo-600 hover:text-indigo-500">jump to Export / Import</a></p>        <p className="text-sm text-slate-500">
           Users can start queries with the shortcut name to use this engine.{" "}

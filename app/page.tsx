@@ -6,6 +6,7 @@ import { CopyButton } from "@/components/copy-button";
 import { SearchConsole } from "@/components/search/search-console";
 import Footer from "@/components/footer";
 import { fetchEngines } from "@/lib/engines";
+import { fetchSiteShortcut } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,10 @@ export default async function Home({ searchParams }: HomeProps) {
   const protocol = detectProtocol(headersList);
   const baseUrl = `${protocol}://${host}`;
 
-  const engines = await fetchEngines();
+  const [engines, siteShortcut] = await Promise.all([
+    fetchEngines(),
+    fetchSiteShortcut(),
+  ]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
@@ -92,7 +96,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </section>
 
-        <SearchConsole engines={engines} />
+        <SearchConsole engines={engines} siteShortcut={siteShortcut} />
 
         <CollapsibleSection
           title="Included shortcuts"

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { normalizeSiteShortcut } from "@/lib/settings";
 import { normalizeShortcut } from "@/lib/shortcuts";
 
 const shortcutSchema = z
@@ -53,11 +54,22 @@ const baseEngineSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+const siteShortcutSchema = z
+  .string()
+  .min(1, "Site shortcut should be at least 1 character")
+  .max(24, "Site shortcut should be 24 characters or fewer")
+  .regex(/^[^\s'"]+$/, "Anything except spaces and quotes is allowed")
+  .transform((val) => normalizeSiteShortcut(val));
+
 export const enginePayloadSchema = baseEngineSchema.extend({
   isDefault: baseEngineSchema.shape.isDefault.default(false),
 });
 
 export const engineUpdateSchema = baseEngineSchema.partial();
+export const siteShortcutPayloadSchema = z.object({
+  siteShortcut: siteShortcutSchema,
+});
 
 export type EnginePayloadInput = z.infer<typeof enginePayloadSchema>;
 export type EngineUpdateInput = z.infer<typeof engineUpdateSchema>;
+export type SiteShortcutPayloadInput = z.infer<typeof siteShortcutPayloadSchema>;

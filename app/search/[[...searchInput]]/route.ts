@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { fetchEngines } from "@/lib/engines";
 import { buildSearchUrl, parseSearchInput } from "@/lib/search";
+import { fetchSiteShortcut } from "@/lib/settings";
 
 const redirectHome = () => {
   return new NextResponse(null, {
@@ -39,15 +40,20 @@ export async function GET(
     return redirectHome();
   }
 
-  const engines = await fetchEngines();
-  if (engines.length === 0) {
+  const siteShortcut = await fetchSiteShortcut();
+  const parsed = parseSearchInput(rawInput, { siteShortcut });
+  let sanitizedQuery = parsed.query.trim();
+
+  if (parsed.directUrl) {
+    return NextResponse.redirect(parsed.directUrl);
+  }
+
+  if (!sanitizedQuery && !parsed.shortcut) {
     return redirectHome();
   }
 
-  const parsed = parseSearchInput(rawInput);
-  let sanitizedQuery = parsed.query.trim();
-
-  if (!sanitizedQuery && !parsed.shortcut) {
+  const engines = await fetchEngines();
+  if (engines.length === 0) {
     return redirectHome();
   }
 

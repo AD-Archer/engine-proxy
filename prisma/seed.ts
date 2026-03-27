@@ -10,6 +10,15 @@ const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  await prisma.appSetting.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      siteShortcut: "site:",
+    },
+  });
+
   const existing = await prisma.searchEngine.findMany();
   await Promise.all(
     existing.map((engine) => {

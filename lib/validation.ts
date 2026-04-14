@@ -68,6 +68,7 @@ export const enginePayloadSchema = baseEngineSchema.extend({
 export const engineUpdateSchema = baseEngineSchema.partial();
 export const siteShortcutPayloadSchema = z.object({
   siteShortcut: siteShortcutSchema,
+  autoAppendComForSiteShortcut: z.boolean().optional(),
 });
 
 export type EnginePayloadInput = z.infer<typeof enginePayloadSchema>;

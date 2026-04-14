@@ -25,6 +25,7 @@ const emptyForm: EngineFormState = {
 type Props = {
   initialEngines: SearchEngineDTO[];
   initialSiteShortcut: string;
+  initialAutoAppendComForSiteShortcut: boolean;
 };
 
 const normalizeUrlTemplate = (value: string) =>
@@ -94,9 +95,12 @@ const normalize = (engine: SearchEngineDTO): EngineFormState => ({
 export const AdminDashboard = ({
   initialEngines,
   initialSiteShortcut,
+  initialAutoAppendComForSiteShortcut,
 }: Props) => {
   const [engines, setEngines] = useState(initialEngines);
   const [siteShortcut, setSiteShortcut] = useState(initialSiteShortcut);
+  const [autoAppendComForSiteShortcut, setAutoAppendComForSiteShortcut] =
+    useState(initialAutoAppendComForSiteShortcut);
   const [siteShortcutBusy, setSiteShortcutBusy] = useState(false);
   const [siteShortcutFeedback, setSiteShortcutFeedback] = useState<string | null>(
     null
@@ -140,7 +144,10 @@ export const AdminDashboard = ({
       const response = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ siteShortcut }),
+        body: JSON.stringify({
+          siteShortcut,
+          autoAppendComForSiteShortcut,
+        }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -153,7 +160,12 @@ export const AdminDashboard = ({
         typeof payload.data?.siteShortcut === "string"
           ? payload.data.siteShortcut
           : siteShortcut;
+      const nextAutoAppendComForSiteShortcut =
+        typeof payload.data?.autoAppendComForSiteShortcut === "boolean"
+          ? payload.data.autoAppendComForSiteShortcut
+          : autoAppendComForSiteShortcut;
       setSiteShortcut(nextShortcut);
+      setAutoAppendComForSiteShortcut(nextAutoAppendComForSiteShortcut);
       success("Site shortcut updated");
     } catch (error) {
       if (error instanceof Error) {
@@ -297,6 +309,11 @@ export const AdminDashboard = ({
           Example: <code className="rounded bg-slate-100 px-1">{siteShortcut} mail.google.com</code> opens Gmail directly.
           If the text after the shortcut is not a site or IP, it runs as a normal search phrase.
         </p>
+        <p className="mt-2 text-sm text-slate-600">
+          Optional behavior: auto-append <code className="rounded bg-slate-100 px-1">.com</code> for single-label hosts like{" "}
+          <code className="rounded bg-slate-100 px-1">{siteShortcut} ebay</code>. Inputs with explicit ports like{" "}
+          <code className="rounded bg-slate-100 px-1">{siteShortcut} server:3921</code> keep the port and do not add <code className="rounded bg-slate-100 px-1">.com</code>.
+        </p>
         <form className="mt-4 flex flex-col gap-3 sm:max-w-md" onSubmit={saveSiteShortcut}>
           <label className="text-sm font-medium text-slate-700" htmlFor="site-shortcut">
             Shortcut token (no spaces, no quotes)
@@ -317,6 +334,16 @@ export const AdminDashboard = ({
           >
             {siteShortcutBusy ? "Saving..." : "Save site shortcut"}
           </button>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={autoAppendComForSiteShortcut}
+              onChange={(event) =>
+                setAutoAppendComForSiteShortcut(event.target.checked)
+              }
+            />
+            Auto-append <code>.com</code> for single-label hosts in site mode
+          </label>
         </form>
         {siteShortcutFeedback && (
           <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

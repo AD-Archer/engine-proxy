@@ -6,7 +6,7 @@ import { CopyButton } from "@/components/copy-button";
 import { SearchConsole } from "@/components/search/search-console";
 import Footer from "@/components/footer";
 import { fetchEngines } from "@/lib/engines";
-import { fetchSiteShortcut } from "@/lib/settings";
+import { fetchAppSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -50,9 +50,9 @@ export default async function Home({ searchParams }: HomeProps) {
   const protocol = detectProtocol(headersList);
   const baseUrl = `${protocol}://${host}`;
 
-  const [engines, siteShortcut] = await Promise.all([
+  const [engines, settings] = await Promise.all([
     fetchEngines(),
-    fetchSiteShortcut(),
+    fetchAppSettings(),
   ]);
 
   return (
@@ -96,7 +96,11 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </section>
 
-        <SearchConsole engines={engines} siteShortcut={siteShortcut} />
+        <SearchConsole
+          engines={engines}
+          siteShortcut={settings.siteShortcut}
+          autoAppendComForSiteShortcut={settings.autoAppendComForSiteShortcut}
+        />
 
         <CollapsibleSection
           title="Included shortcuts"

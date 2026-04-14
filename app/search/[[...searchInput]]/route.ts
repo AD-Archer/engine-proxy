@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { fetchEngines } from "@/lib/engines";
 import { buildSearchUrl, parseSearchInput } from "@/lib/search";
-import { fetchSiteShortcut } from "@/lib/settings";
+import { fetchAppSettings } from "@/lib/settings";
 
 const redirectHome = () => {
   return new NextResponse(null, {
@@ -40,8 +40,11 @@ export async function GET(
     return redirectHome();
   }
 
-  const siteShortcut = await fetchSiteShortcut();
-  const parsed = parseSearchInput(rawInput, { siteShortcut });
+  const settings = await fetchAppSettings();
+  const parsed = parseSearchInput(rawInput, {
+    siteShortcut: settings.siteShortcut,
+    autoAppendComForSiteShortcut: settings.autoAppendComForSiteShortcut,
+  });
   let sanitizedQuery = parsed.query.trim();
 
   if (parsed.directUrl) {

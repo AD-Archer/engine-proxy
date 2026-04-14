@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { fetchSiteShortcut, updateSiteShortcut } from "@/lib/settings";
+import { fetchAppSettings, updateAppSettings } from "@/lib/settings";
 import { siteShortcutPayloadSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
-    const siteShortcut = await fetchSiteShortcut();
-    return NextResponse.json({ data: { siteShortcut } });
+    const settings = await fetchAppSettings();
+    return NextResponse.json({ data: settings });
   } catch (error) {
     console.error("Failed to load app settings", error);
     return NextResponse.json(
@@ -28,8 +28,8 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const siteShortcut = await updateSiteShortcut(parsed.data.siteShortcut);
-    return NextResponse.json({ data: { siteShortcut } });
+    const settings = await updateAppSettings(parsed.data);
+    return NextResponse.json({ data: settings });
   } catch (error) {
     if (error instanceof Error) {
       return NextResponse.json(

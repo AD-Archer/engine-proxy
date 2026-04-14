@@ -8,9 +8,14 @@ import { buildSearchUrl, parseSearchInput } from "@/lib/search";
 type SearchConsoleProps = {
   engines: SearchEngineDTO[];
   siteShortcut: string;
+  autoAppendComForSiteShortcut: boolean;
 };
 
-export const SearchConsole = ({ engines, siteShortcut }: SearchConsoleProps) => {
+export const SearchConsole = ({
+  engines,
+  siteShortcut,
+  autoAppendComForSiteShortcut,
+}: SearchConsoleProps) => {
   const defaultEngine =
     engines.find((engine) => engine.isDefault) ?? engines[0];
   const [query, setQuery] = useState("");
@@ -38,7 +43,10 @@ export const SearchConsole = ({ engines, siteShortcut }: SearchConsoleProps) => 
       return;
     }
 
-    const parsed = parseSearchInput(query, { siteShortcut });
+    const parsed = parseSearchInput(query, {
+      siteShortcut,
+      autoAppendComForSiteShortcut,
+    });
     if (parsed.directUrl) {
       window.location.href = parsed.directUrl;
       return;

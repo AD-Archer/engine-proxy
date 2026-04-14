@@ -5,7 +5,7 @@ import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import ToastProvider from "@/components/toast/provider";
 import Footer from "@/components/footer";
 import { fetchEngines } from "@/lib/engines";
-import { fetchSiteShortcut } from "@/lib/settings";
+import { fetchAppSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Manage search engines shortcuts • Engine Proxy • admin dashboard",
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const [engines, siteShortcut] = await Promise.all([
+  const [engines, settings] = await Promise.all([
     fetchEngines(),
-    fetchSiteShortcut(),
+    fetchAppSettings(),
   ]);
 
   return (
@@ -44,7 +44,13 @@ export default async function AdminPage() {
           </div>
         </header>
         <ToastProvider>
-          <AdminDashboard initialEngines={engines} initialSiteShortcut={siteShortcut} />
+          <AdminDashboard
+            initialEngines={engines}
+            initialSiteShortcut={settings.siteShortcut}
+            initialAutoAppendComForSiteShortcut={
+              settings.autoAppendComForSiteShortcut
+            }
+          />
         </ToastProvider>
       </main>
       <Footer admin />
